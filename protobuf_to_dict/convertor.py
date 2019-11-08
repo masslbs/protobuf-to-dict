@@ -30,7 +30,7 @@ def proto_timestamp_to_python_timestamp(ts):
 
 
 def python_timestamp_to_proto_timestamp(ts):
-    dt = datetime.fromtimestamp(ts)
+    dt = datetime.datetime.fromtimestamp(ts)
     proto_ts = datetime_to_proto_timestamp(dt)
     return proto_ts
 
