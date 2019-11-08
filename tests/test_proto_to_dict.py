@@ -7,9 +7,9 @@ from google.protobuf.descriptor import FieldDescriptor
 from tests import sample_pb2
 from tests.sample_pb2 import MessageOfTypes
 from protobuf_to_dict import (
-    protobuf_to_dict, dict_to_protobuf, datetime_to_timestamp,
-    timestamp_to_datetime, get_field_names_and_options,
-    validate_dict_for_required_pb_fields, FieldsMissing)
+    protobuf_to_dict, dict_to_protobuf, datetime_to_proto_timestamp,
+    proto_timestamp_to_datetime, proto_timestamp_to_python_timestamp, python_timestamp_to_proto_timestamp,
+    get_field_names_and_options, validate_dict_for_required_pb_fields, FieldsMissing)
 
 sample_datetime = datetime.datetime.strptime('2011-01-21 02:37:21', '%Y-%m-%d %H:%M:%S')
 
@@ -220,13 +220,13 @@ class TestProtoConvertor:
 class TestDateTime:
 
     def test_datetime_to_timestamp_and_back(self):
-        timestamp = datetime_to_timestamp(sample_datetime)
-        result_sample_datetime = timestamp_to_datetime(timestamp)
+        timestamp = datetime_to_proto_timestamp(sample_datetime)
+        result_sample_datetime = proto_timestamp_to_datetime(timestamp)
         assert sample_datetime == result_sample_datetime
 
     def test_pb_convert_to_dict_with_datetime_and_back(self):
         now = datetime.datetime.utcnow()
-        timestamp = datetime_to_timestamp(now)
+        timestamp = datetime_to_proto_timestamp(now)
         obj1 = sample_pb2.Obj(item_id="item id", transacted_at=timestamp)
 
         pb_dict = protobuf_to_dict(obj1)
@@ -234,6 +234,12 @@ class TestDateTime:
 
         obj1_again = dict_to_protobuf(sample_pb2.Obj, values=pb_dict)
         assert obj1 == obj1_again
+
+    def test_proto_timestamp_to_python_timestamp_and_back(self):
+        proto_timestamp = datetime_to_proto_timestamp(sample_datetime)
+        result_python_timestamp = proto_timestamp_to_python_timestamp(proto_timestamp)
+        result_proto_timestamp = python_timestamp_to_proto_timestamp(result_python_timestamp)
+        assert proto_timestamp == result_proto_timestamp
 
 
 class TestOptions:

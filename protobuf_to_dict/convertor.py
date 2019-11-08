@@ -12,15 +12,27 @@ __all__ = ["protobuf_to_dict", "TYPE_CALLABLE_MAP", "dict_to_protobuf",
 Timestamp_type_name = 'Timestamp'
 
 
-def datetime_to_timestamp(dt):
+def datetime_to_proto_timestamp(dt):
     ts = Timestamp()
     ts.FromDatetime(dt)
     return ts
 
 
-def timestamp_to_datetime(ts):
+def proto_timestamp_to_datetime(ts):
     dt = ts.ToDatetime()
     return dt
+
+
+def proto_timestamp_to_python_timestamp(ts):
+    dt = proto_timestamp_to_datetime(ts)
+    python_ts = dt.timestamp()
+    return python_ts
+
+
+def python_timestamp_to_proto_timestamp(ts):
+    dt = datetime.fromtimestamp(ts)
+    proto_ts = datetime_to_proto_timestamp(dt)
+    return proto_ts
 
 
 EXTENSION_CONTAINER = '___X'
@@ -63,7 +75,7 @@ def _is_map_entry(field):
 
 
 def protobuf_to_dict(pb, type_callable_map=TYPE_CALLABLE_MAP, use_enum_labels=False,
-                     including_default_value_fields=False, lowercase_enum_lables=False):
+                     including_default_value_fields=False, lowercase_enum_lables=False, use_python_timestamp=False):
     result_dict = {}
     extensions = {}
     for field, value in pb.ListFields():
@@ -73,13 +85,13 @@ def protobuf_to_dict(pb, type_callable_map=TYPE_CALLABLE_MAP, use_enum_labels=Fa
             type_callable = _get_field_value_adaptor(
                 pb, value_field, type_callable_map,
                 use_enum_labels, including_default_value_fields,
-                lowercase_enum_lables)
+                lowercase_enum_lables, use_python_timestamp)
             for k, v in value.items():
                 result_dict[field.name][k] = type_callable(v)
             continue
         type_callable = _get_field_value_adaptor(pb, field, type_callable_map,
                                                  use_enum_labels, including_default_value_fields,
-                                                 lowercase_enum_lables)
+                                                 lowercase_enum_lables, use_python_timestamp)
         if field.label == FieldDescriptor.LABEL_REPEATED:
             type_callable = repeated(type_callable)
 
@@ -116,10 +128,14 @@ def protobuf_to_dict(pb, type_callable_map=TYPE_CALLABLE_MAP, use_enum_labels=Fa
 
 
 def _get_field_value_adaptor(pb, field, type_callable_map=TYPE_CALLABLE_MAP, use_enum_labels=False,
-                             including_default_value_fields=False, lowercase_enum_lables=False):
+                             including_default_value_fields=False, lowercase_enum_lables=False,
+                             use_python_timestamp=False):
 
     if field.message_type and field.message_type.name == Timestamp_type_name:
-        return timestamp_to_datetime
+        if use_python_timestamp:
+            return proto_timestamp_to_python_timestamp
+        else:
+            return proto_timestamp_to_datetime
     if field.type == FieldDescriptor.TYPE_MESSAGE:
         # recursively encode protobuf sub-message
         return lambda pb: protobuf_to_dict(
@@ -144,7 +160,7 @@ REVERSE_TYPE_CALLABLE_MAP = {
 
 
 def dict_to_protobuf(pb_klass_or_instance, values, type_callable_map=REVERSE_TYPE_CALLABLE_MAP,
-                     strict=True, ignore_none=False):
+                     strict=True, ignore_none=False, use_python_timestamp=False):
     """Populates a protobuf model from a dictionary.
 
     :param pb_klass_or_instance: a protobuf message class, or an protobuf instance
@@ -161,7 +177,7 @@ def dict_to_protobuf(pb_klass_or_instance, values, type_callable_map=REVERSE_TYP
         instance = pb_klass_or_instance
     else:
         instance = pb_klass_or_instance()
-    return _dict_to_protobuf(instance, values, type_callable_map, strict, ignore_none)
+    return _dict_to_protobuf(instance, values, type_callable_map, strict, ignore_none, use_python_timestamp)
 
 
 def _get_field_mapping(pb, dict_value, strict):
@@ -192,7 +208,7 @@ def _get_field_mapping(pb, dict_value, strict):
     return field_mapping
 
 
-def _dict_to_protobuf(pb, value, type_callable_map, strict, ignore_none):
+def _dict_to_protobuf(pb, value, type_callable_map, strict, ignore_none, use_python_timestamp=False):
     fields = _get_field_mapping(pb, value, strict)
 
     for field, input_value, pb_value in fields:
@@ -227,7 +243,10 @@ def _dict_to_protobuf(pb, value, type_callable_map, strict, ignore_none):
                     pb_value.append(item)
             continue
         if isinstance(input_value, datetime.datetime):
-            input_value = datetime_to_timestamp(input_value)
+            if use_python_timestamp:
+                input_value = python_timestamp_to_proto_timestamp(input_value)
+            else:
+                input_value = datetime_to_proto_timestamp(input_value)
             # Instead of setattr we need to use CopyFrom for composite fields
             # Otherwise we will get AttributeError:
             #   Assignment not allowed to composite field “field name” in protocol message object
