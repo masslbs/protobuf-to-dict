@@ -4,6 +4,7 @@ import pytest
 
 from google.protobuf.descriptor import FieldDescriptor
 
+from protobuf_to_dict.convertor import InvalidFieldFoundException
 from tests import sample_pb2
 from tests.sample_pb2 import MessageOfTypes
 from protobuf_to_dict import (
@@ -22,6 +23,14 @@ class TestProtoConvertor:
 
         m2 = dict_to_protobuf(MessageOfTypes, d)
         assert m == m2
+
+        d = 'CAT'
+        with pytest.raises(InvalidFieldFoundException) as error:
+            dict_to_protobuf(MessageOfTypes, d)
+
+        expected_error = "does not have an attribute items"
+        expected_message = f"variable `dict_value` has type `str` with value `CAT` and had an error: {expected_error}"
+        assert str(error.value) == expected_message
 
     def test_use_enum_labels(self):
         m = self.populate_MessageOfTypes()

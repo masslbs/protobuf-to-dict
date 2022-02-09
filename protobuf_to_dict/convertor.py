@@ -47,6 +47,16 @@ TYPE_CALLABLE_MAP = {
 }
 
 
+class InvalidFieldFoundException(Exception):
+    def __init__(self, variable_name, value, error_message):
+        self.variable_name = variable_name
+        self.value = value
+        self.error_message = error_message
+        klass = value.__class__.__name__
+        message = f"variable `{variable_name}` has type `{klass}` with value `{value}` and had an error: {error_message}"
+        super().__init__(message)
+
+
 def repeated(type_callable):
     return lambda value_list: [type_callable(value) for value in value_list]
 
@@ -168,6 +178,9 @@ def dict_to_protobuf(pb_klass_or_instance, values, type_callable_map=REVERSE_TYP
 
 def _get_field_mapping(pb, dict_value, strict):
     field_mapping = []
+    if not hasattr(dict_value, "items"):
+        raise InvalidFieldFoundException("dict_value", dict_value, "does not have an attribute items")
+
     for key, value in dict_value.items():
         if key == EXTENSION_CONTAINER:
             continue
