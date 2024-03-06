@@ -2,6 +2,7 @@
 import six
 import datetime
 from dateutil.parser import parse as date_parser
+import binascii
 
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor
@@ -42,7 +43,7 @@ TYPE_CALLABLE_MAP = {
     FieldDescriptor.TYPE_SFIXED64: int if six.PY3 else six.integer_types[1],
     FieldDescriptor.TYPE_BOOL: bool,
     FieldDescriptor.TYPE_STRING: six.text_type,
-    FieldDescriptor.TYPE_BYTES: six.binary_type,
+    FieldDescriptor.TYPE_BYTES: lambda b: binascii.hexlify(b).decode('utf-8'),
     FieldDescriptor.TYPE_ENUM: int,
 }
 
