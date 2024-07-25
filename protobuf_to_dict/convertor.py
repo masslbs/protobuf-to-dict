@@ -24,6 +24,8 @@ def timestamp_to_datetime(ts):
     dt = ts.ToDatetime()
     return dt
 
+def hex(b):
+    return "0x"+binascii.hexlify(b).decode('utf-8')
 
 EXTENSION_CONTAINER = '___X'
 
@@ -43,7 +45,7 @@ TYPE_CALLABLE_MAP = {
     FieldDescriptor.TYPE_SFIXED64: int if six.PY3 else six.integer_types[1],
     FieldDescriptor.TYPE_BOOL: bool,
     FieldDescriptor.TYPE_STRING: six.text_type,
-    FieldDescriptor.TYPE_BYTES: lambda b: binascii.hexlify(b).decode('utf-8'),
+    FieldDescriptor.TYPE_BYTES: hex,
     FieldDescriptor.TYPE_ENUM: int,
 }
 
